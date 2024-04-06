@@ -20,7 +20,7 @@ module LogsParser
     def initialize
       # @output = Output::Pretty.new
       # @output = Output::JSON.new
-      @output = Output::CSV.new('output.csv')
+      @output = Output::CSV.new(ARGV[1] || 'output.csv')
     end
 
     def run

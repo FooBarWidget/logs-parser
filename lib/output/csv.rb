@@ -3,19 +3,24 @@
 
 require 'sorbet-runtime'
 require 'set'
-require 'json'
+require 'neatjson'
 require 'csv'
 require_relative 'base'
 
 module LogsParser
   module Output
     class CSV < Base
-      STANDARD_HEADERS = ['@timestamp', '@time', '@level', '@message'].freeze
+      sig { params(path: String, columns: T.any(T::Array[String], Symbol)).void }
+      def initialize(path, columns: [])
+        raise ArgumentError, "If 'columns' is a Symbol then it may only be :all" if columns.is_a?(Symbol) && columns != :all
 
-      sig { params(path: String, header_properties: T::Array[String]).void }
-      def initialize(path, header_properties: [])
         @path = path
-        @header_properties = T.let(Set.new(STANDARD_HEADERS + header_properties), T::Set[String])
+        @columns = T.let(
+          columns == :all ?
+            :all :
+            Set.new(T.cast(columns, T::Array[String])),
+          T.any(T::Set[String], Symbol),
+        )
         @serialized_messages = T.let([], T::Array[T::Hash[String, T.untyped]])
         @headers_index = T.let({}, T::Hash[String, Integer])
       end
@@ -51,7 +56,28 @@ module LogsParser
         end
         result['@level'] = message.level if message.level
         result['@message'] = message.display_message if message.display_message
-        result.merge!(T.must(message.properties)) if message.properties
+
+        if !message.properties&.empty?
+          if @columns == :all
+            result.merge!(T.must(message.properties)) if message.properties
+          else
+            columns = T.cast(@columns, T::Set[String])
+            rest_properties = {}
+
+            T.must(message.properties).each_pair do |key, value|
+              if columns.include?(key)
+                result[key] = value
+              else
+                rest_properties[key] = value
+              end
+            end
+
+            if !rest_properties.empty?
+              result['@properties'] = rest_properties
+            end
+          end
+        end
+
         result
       end
 
@@ -61,7 +87,7 @@ module LogsParser
         @headers_index.each_pair do |header, index|
           value = serialized_message[header]
           if value.is_a?(Array) || value.is_a?(Hash)
-            value = ::JSON.generate(value)
+            value = ::JSON.neat_generate(value, wrap: 40, padding: 1, after_colon: 1, after_comma: 1)
           end
           result[index] = value
         end
