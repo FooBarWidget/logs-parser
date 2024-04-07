@@ -9,7 +9,9 @@ require_relative '../structured_message'
 
 module LogsParser
   module Parser
-    class GoLog < Base
+    # https://kubernetes.io/docs/concepts/cluster-administration/system-logs/
+    # https://github.com/kubernetes/klog/tree/main/textlogger
+    class GoKlogText < Base
       sig { override.params(raw: String).returns(T.nilable(StructuredMessage)) }
       def parse(raw)
         return if raw !~ /^([A-Z])([0-9]+) ([0-9][0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9]+)       [0-9]+ (\S+\.go):([0-9]+)\] ?(.*)/
@@ -73,22 +75,22 @@ module LogsParser
       def parse_payload(payload)
         pos = 0
 
-        # Scan optional component identifier
+        # Scan optional header
         if payload[pos] != "\""
-          component, component_size = scan_literal(payload)
-          if !component.empty?
-            if payload[pos + component_size] == "="
-              # This is not actually a component identifier but a key-value pair. Unscan this.
-              component = ""
+          header, header_size = scan_literal(payload)
+          if !header.empty?
+            if payload[pos + header_size] == "="
+              # This is not actually a header but a key-value pair. Unscan this.
+              header = ""
             else
-              pos += component_size
+              pos += header_size
 
               # Skip spaces
               pos += 1 while payload[pos] == ' '
             end
           end
         else
-          component = ""
+          header = ""
         end
 
         # Scan optional display message
@@ -145,7 +147,7 @@ module LogsParser
           pos += 1 while payload[pos] == ' '
         end
 
-        properties["component"] = component if !component.empty?
+        properties["header"] = header if !header.empty?
         if display_message.empty? && properties.key?("msg")
           display_message = properties.delete("msg")
         end

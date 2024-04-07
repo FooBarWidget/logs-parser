@@ -1,7 +1,7 @@
 require_relative '../spec_helper'
-require_relative '../../lib/parsers/go_log'
+require_relative '../../lib/parser/go_klog_text'
 
-RSpec.describe LogsParser::Parser::GoLog do
+RSpec.describe LogsParser::Parser::GoKlogText do
   describe '#parse' do
     subject { described_class.new }
 
@@ -41,21 +41,21 @@ RSpec.describe LogsParser::Parser::GoLog do
       expect(result.level).to eq('X')
     end
 
-    context 'with component' do
+    context 'with header' do
       specify 'with display message' do
         result = subject.parse(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] controller.main/func "oh no"})
-        expect(result.properties['component']).to eq('controller.main/func')
+        expect(result.properties['header']).to eq('controller.main/func')
         expect(result.display_message).to eq("oh no")
       end
 
       specify 'without display message' do
         result = subject.parse(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] controller.main/func})
-        expect(result.properties['component']).to eq('controller.main/func')
+        expect(result.properties['header']).to eq('controller.main/func')
         expect(result.display_message).to be_nil
       end
     end
 
-    context 'without component' do
+    context 'without header' do
       specify 'with display message' do
         result = subject.parse(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] "oh no"})
         expect(result.display_message).to eq("oh no")
@@ -127,9 +127,9 @@ RSpec.describe LogsParser::Parser::GoLog do
       expect(result.properties['cc']).to eq('xx')
     end
 
-    specify 'ignoring spaces after component' do
+    specify 'ignoring spaces after header' do
       result = subject.parse(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] controller.main/func  })
-      expect(result.properties['component']).to eq('controller.main/func')
+      expect(result.properties['header']).to eq('controller.main/func')
     end
 
     specify 'ignoring spaces after display message' do

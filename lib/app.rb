@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require 'sorbet-runtime'
-require_relative 'parser/go_log'
+require_relative 'parser/go_klog_text'
 require_relative 'parser/generic_json'
 # require_relative 'output/pretty'
 # require_relative 'output/json'
@@ -13,7 +13,7 @@ module LogsParser
     extend T::Sig
 
     PARSERS = T.let([
-      Parser::GoLog.new,
+      Parser::GoKlogText.new,
       Parser::GenericJson.new
     ], T::Array[Parser::Base])
 
