@@ -3,6 +3,7 @@
 
 require 'sorbet-runtime'
 require 'neatjson'
+require 'time'
 require_relative 'base'
 
 module LogsParser
