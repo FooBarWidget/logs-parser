@@ -18,17 +18,17 @@ module LogsParser
     #
     # https://kubernetes.io/docs/concepts/cluster-administration/system-logs/
     # https://github.com/kubernetes/klog/tree/main/textlogger
-    class GoKlogText < Base
+    class GoKlogPrefix < Base
       sig do
         override.
-        params(raw: String).
+        params(message: StructuredMessage).
         returns([
+          T::Boolean,
           T.nilable(ParseError),
-          T.nilable(StructuredMessage),
         ])
       end
-      def parse(raw)
-        return [nil, nil] if raw !~ /^([A-Z])([0-9]+) ([0-9][0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9]+)       [0-9]+ (\S+\.go):([0-9]+)\] *(.*)/
+      def parse(message)
+        return [false, nil] if message.unparsed_remainder !~ /^([A-Z])([0-9]+) ([0-9][0-9]:[0-9][0-9]:[0-9][0-9]\.[0-9]+)       [0-9]+ (\S+\.go):([0-9]+)\] *(.*)/
 
         level = T.let($1, String)
         code = T.let($2, String)
@@ -37,25 +37,20 @@ module LogsParser
         source_line = T.let($5, String)
         payload = T.let($6, String)
 
-        result = StructuredMessage.new(
-          level: parse_level(level),
-          raw: raw,
-          time: time,
-          properties: {
-            "code" => code,
-            "source_file" => source_file,
-            "source_line" => source_line.to_i,
-          },
-        )
+        message.level = parse_level(level)
+        message.time = time
+        message.properties["code"] = code
+        message.properties["source_file"] = source_file
+        message.properties["source_line"] = source_line.to_i
 
         err, header, display_message, params = parse_payload(payload)
-        return [err, nil] if err
+        return [true, err] if err
 
-        T.must(result.properties)["header"] = header if header
-        result.display_message = display_message if display_message
-        result.unparsed_raw = params
+        message.properties["header"] = header if header
+        message.display_message = display_message if display_message
+        message.unparsed_remainder = params || ""
 
-        [nil, result]
+        [true, nil]
       end
 
       private

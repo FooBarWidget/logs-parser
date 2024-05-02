@@ -11,7 +11,7 @@ module LogsParser
       extend T::Helpers
       abstract!
 
-      sig { abstract.params(message: StructuredMessage).returns(T.nilable(StructuredMessage)) }
+      sig { abstract.params(message: StructuredMessage).returns(T::Boolean) }
       def process(message); end
     end
   end

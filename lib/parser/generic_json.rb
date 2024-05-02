@@ -11,21 +11,19 @@ module LogsParser
     class GenericJson < Base
       sig do
         override.
-        params(raw: String).
+        params(message: StructuredMessage).
         returns([
+          T::Boolean,
           T.nilable(ParseError),
-          T.nilable(StructuredMessage),
         ])
       end
-      def parse(raw)
-        doc = JSON.parse(raw)
-        message = StructuredMessage.new(
-          properties: doc,
-          raw: raw,
-        )
-        [nil, message]
+      def parse(message)
+        doc = JSON.parse(message.unparsed_remainder)
+        message.unparsed_remainder = ""
+        message.properties.merge!(doc)
+        [true, nil]
       rescue JSON::ParserError
-        [nil, nil]
+        [false, nil]
       end
     end
   end

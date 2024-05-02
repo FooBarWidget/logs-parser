@@ -5,75 +5,107 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
   describe '#parse' do
     subject { described_class.new }
 
+    def new_message(raw)
+      LogsParser::StructuredMessage.new(
+        raw: raw,
+        unparsed_remainder: raw,
+        properties: {},
+      )
+    end
+
     specify 'property with literal key' do
-      err, result = subject.parse(%Q{aa="xx"})
+      message = new_message(%Q{aa="xx"})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq('xx')
+      expect(message.properties['aa']).to eq('xx')
     end
 
     specify 'property with string key' do
-      err, result = subject.parse(%Q{"aa"="xx"})
+      message = new_message(%Q{"aa"="xx"})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq('xx')
+      expect(message.properties['aa']).to eq('xx')
     end
 
     specify 'property with string value' do
-      err, result = subject.parse(%Q{aa="xx"})
+      message = new_message(%Q{aa="xx"})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq('xx')
+      expect(message.properties['aa']).to eq('xx')
     end
 
     specify 'property with primitive JSON values' do
-      err, result = subject.parse(%Q{aa=true})
+      message = new_message(%Q{aa=true})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq(true)
+      expect(message.properties['aa']).to eq(true)
 
-      err, result = subject.parse(%Q{aa=123})
+      message = new_message(%Q{aa=123})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq(123)
+      expect(message.properties['aa']).to eq(123)
 
-      err, result = subject.parse(%Q{aa=123.5})
+      message = new_message(%Q{aa=123.5})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq(123.5)
+      expect(message.properties['aa']).to eq(123.5)
     end
 
     specify 'property with complex JSON value' do
-      err, result = subject.parse(%Q{aa={ "a": 1, "b": ["x", "y", 123.5, null], "c": true, "d": {}, "e": [] }})
+      message = new_message(%Q{aa={ "a": 1, "b": ["x", "y", 123.5, null], "c": true, "d": {}, "e": [] }})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq({ 'a' => 1, 'b' => ['x', 'y', 123.5, nil], 'c' => true, 'd' => {}, 'e' => [] })
+      expect(message.properties['aa']).to eq({ 'a' => 1, 'b' => ['x', 'y', 123.5, nil], 'c' => true, 'd' => {}, 'e' => [] })
     end
 
     specify 'property with serialized JSON value' do
-      err, result = subject.parse(%Q{"namespaces"="{\\"exclude\\":[],\\"include\\":[]}"})
+      message = new_message(%Q{"namespaces"="{\\"exclude\\":[],\\"include\\":[]}"})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['namespaces']).to eq({ 'exclude' => [], 'include' => []})
+      expect(message.properties['namespaces']).to eq({ 'exclude' => [], 'include' => []})
     end
 
     specify 'property with empty literal value' do
-      err, result = subject.parse(%Q{aa=})
+      message = new_message(%Q{aa=})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq('')
+      expect(message.properties['aa']).to eq('')
     end
 
     specify 'property with non-empty literal value' do
-      err, result = subject.parse(%Q{aa=bb})
+      message = new_message(%Q{aa=bb})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq('bb')
+      expect(message.properties['aa']).to eq('bb')
     end
 
     specify 'multiple properties' do
-      err, result = subject.parse(%Q{aa= bb= cc="xx" dd=123})
+      message = new_message(%Q{aa= bb= cc="xx" dd=123})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['aa']).to eq('')
-      expect(result.properties['bb']).to eq('')
-      expect(result.properties['cc']).to eq('xx')
-      expect(result.properties['dd']).to eq(123)
+      expect(message.properties['aa']).to eq('')
+      expect(message.properties['bb']).to eq('')
+      expect(message.properties['cc']).to eq('xx')
+      expect(message.properties['dd']).to eq(123)
     end
 
     it 'ignores trailing properties' do
-      err, result = subject.parse(%Q{foo="bar"  })
+      message = new_message(%Q{foo="bar"  })
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
       expect(err).to be_nil
-      expect(result.properties['foo']).to eq('bar')
+      expect(message.properties['foo']).to eq('bar')
     end
   end
 end

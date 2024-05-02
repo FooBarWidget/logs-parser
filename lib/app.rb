@@ -2,13 +2,14 @@
 # frozen_string_literal: true
 
 require 'sorbet-runtime'
-require_relative 'parser/go_klog_text'
-require_relative 'parser/go_klog_params'
+# require_relative 'parser/go_klog_prefix'
+# require_relative 'parser/go_klog_params'
 require_relative 'parser/generic_json'
-require_relative 'post_processor/display_message'
 require_relative 'post_processor/timestamp'
+require_relative 'post_processor/level'
+require_relative 'post_processor/display_message'
 require_relative 'output/pretty'
-# require_relative 'output/json'
+require_relative 'output/json'
 require_relative 'output/csv'
 
 module LogsParser
@@ -16,14 +17,15 @@ module LogsParser
     extend T::Sig
 
     PARSE_PIPELINE = T.let([
-      Parser::GoKlogText.new,
-      Parser::GoKlogParams.new,
+      # Parser::GoKlogPrefix.new,
+      # Parser::GoKlogParams.new,
       Parser::GenericJson.new,
     ], T::Array[Parser::Base])
 
     POST_PROCESSING_PIPELINE = T.let([
-      PostProcessor::DisplayMessage.new,
       PostProcessor::Timestamp.new,
+      PostProcessor::Level.new,
+      PostProcessor::DisplayMessage.new,
     ], T::Array[PostProcessor::Base])
 
     def initialize
@@ -45,47 +47,36 @@ module LogsParser
     private
 
     def input
-      if ARGV[0]
+      if ARGV[0] && ARGV[0] != "-"
         File.open(ARGV[0], "r:utf-8")
       else
         STDIN
       end
     end
 
-    sig { params(line: String).returns(StructuredMessage) }
-    def parse(line)
-      message = StructuredMessage.new(display_message: line, raw: line)
+    sig { params(raw: String).returns(StructuredMessage) }
+    def parse(raw)
+      message = StructuredMessage.new(unparsed_remainder: raw, raw: raw, properties: {})
 
       PARSE_PIPELINE.each do |parser|
-        message = try_parse_with_parser_and_merge(parser, message, T.must(message.unparsed_raw || message.display_message))
-        break if message.unparsed_raw.nil? && message.display_message.nil?
+        accepted, err = parser.parse(message)
+        if err
+          STDERR.puts "Parse error: #{err.message}"
+        end
       end
 
-      if message.display_message.nil? && message.unparsed_raw
-        message.display_message = message.unparsed_raw
-        message.unparsed_raw = nil
+      if message.display_message.nil? && !message.unparsed_remainder.empty?
+        message.display_message = message.unparsed_remainder
+        message.unparsed_remainder = ""
       end
 
       message
     end
 
-    sig { params(parser: Parser::Base, old_message: StructuredMessage, raw: String).returns(StructuredMessage) }
-    def try_parse_with_parser_and_merge(parser, old_message, raw)
-      err, new_message = parser.parse(raw)
-      if err
-        STDERR.puts "Parse error: #{err.message}"
-        old_message
-      elsif new_message
-        old_message.merge(new_message)
-      else
-        old_message
-      end
-    end
-
     sig { params(message: StructuredMessage).returns(StructuredMessage) }
     def postprocess(message)
       POST_PROCESSING_PIPELINE.each do |processor|
-        message = processor.process(message) || message
+        processor.process(message)
       end
       message
     end

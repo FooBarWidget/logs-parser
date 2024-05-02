@@ -8,22 +8,21 @@ require_relative '../structured_message'
 module LogsParser
   module PostProcessor
     class DisplayMessage < Base
-      DISPLAY_MESSAGE_KEYS = ['msg', 'message'].freeze
+      MESSAGE_KEYS = ['msg', 'message'].freeze
 
-      sig { override.params(message: StructuredMessage).returns(T.nilable(StructuredMessage)) }
+      sig { override.params(message: StructuredMessage).returns(T::Boolean) }
       def process(message)
-        return nil if message.display_message
+        return false if message.display_message
 
-        DISPLAY_MESSAGE_KEYS.each do |key|
-          if dm = message.properties&.fetch(key)
-            message = message.deep_dup
+        MESSAGE_KEYS.each do |key|
+          if dm = message.properties.fetch(key)
             message.display_message = dm
-            T.must(message.properties).delete(key)
-            return message
+            message.properties.delete(key)
+            return true
           end
         end
 
-        nil
+        false
       end
     end
   end

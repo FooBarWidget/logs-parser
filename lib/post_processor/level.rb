@@ -7,16 +7,16 @@ require_relative '../structured_message'
 
 module LogsParser
   module PostProcessor
-    class Timestamp < Base
-      KEYS = ['ts'].freeze
+    class Level < Base
+      KEYS = ['level'].freeze
 
       sig { override.params(message: StructuredMessage).returns(T::Boolean) }
       def process(message)
-        # If there's a timestamp property then override the StructuredMessage's
-        # native timestamp because the one in the property may be more accurate.
+        # If there's a level property then override the StructuredMessage's
+        # native level because the one in the property may be more accurate.
         KEYS.each do |key|
-          if (value = message.properties.fetch(key)) && ((value.is_a?(String) && value =~ /\A[0-9]+(\.([0-9]+))?\Z/) || value.is_a?(Numeric))
-            message.timestamp = Time.at(value.is_a?(Numeric) ? value : value.to_f)
+          if value = message.properties.fetch(key)
+            message.level = value
             message.properties.delete(key)
             return true
           end

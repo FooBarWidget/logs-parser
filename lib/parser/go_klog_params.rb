@@ -19,43 +19,43 @@ module LogsParser
     class GoKlogParams < Base
       sig do
         override.
-        params(raw: String, offset: Integer).
+        params(message: StructuredMessage, offset: Integer).
         returns([
+          T::Boolean,
           T.nilable(ParseError),
-          T.nilable(StructuredMessage),
         ])
       end
-      def parse(raw, offset = 0)
-        properties = {}
+      def parse(message, offset = 0)
         pos = 0
+        data = message.unparsed_remainder
 
-        while pos < raw.size
+        while pos < data.size
           # Scan key
-          err, key, key_size = scan_and_parse_json_string_or_literal(T.must(raw[pos .. -1]))
-          return [ParseError.new("Failed to parse key at position #{offset + pos}: #{err.message}"), nil] if err
+          err, key, key_size = scan_and_parse_json_string_or_literal(T.must(data[pos .. -1]))
+          return [true, ParseError.new("Failed to parse key at position #{offset + pos}: #{err.message}")] if err
           if key.empty?
             debug "Failed to scan key at position #{offset + pos}"
-            return [nil, nil]
+            return [false, nil]
           end
           pos += key_size
 
           # Scan delimiter
-          if raw[pos] != '='
+          if data[pos] != '='
             debug "Failed to scan delimiter at position #{offset + pos}"
-            return [nil, nil]
+            return [false, nil]
           end
           pos += 1
 
           # Scan value
-          if raw[pos] == ' ' || raw[pos].nil?
+          if data[pos] == ' ' || data[pos].nil?
             value = ""
           else
             # Value may be a serialized JSON document. Try parsing it, but it's
             # fine if that fails.
-            err, value, value_size = scan_json(T.must(raw[pos .. -1]))
+            err, value, value_size = scan_json(T.must(data[pos .. -1]))
             if err
-              err, value, value_size = scan_literal(T.must(raw[pos .. -1]))
-              return [ParseError.new("Failed to scan value at position #{offset + pos}: #{err.message}"), nil] if err
+              err, value, value_size = scan_literal(T.must(data[pos .. -1]))
+              return [true, ParseError.new("Failed to scan value at position #{offset + pos}: #{err.message}")] if err
             else
               value = JSON.parse(value)
               if value.is_a?(String)
@@ -68,12 +68,12 @@ module LogsParser
             pos += value_size
           end
 
-          properties[key] = value
+          message.properties[key] = value
           # Skip spaces
-          pos += 1 while raw[pos] == ' '
+          pos += 1 while data[pos] == ' '
         end
 
-        [nil, StructuredMessage.new(properties: properties, raw: raw)]
+        [true, nil]
       end
 
       private
