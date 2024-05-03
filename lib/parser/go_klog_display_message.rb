@@ -10,20 +10,22 @@ require_relative '../structured_message'
 
 module LogsParser
   module Parser
-    # Parses the metadata, header and display message part of a klog-like message. Something like:
+    # Parses the header and display message part of a klog-like message. Something like:
     #
-    #   I0123 12:34:56.789012   12345 file.go:67] Event occurred foo="bar"
-    #   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    #                       only this part
+    #   I0123 12:34:56.789012   12345 file.go:67] Event occurred
+    #   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    #                only this part
     #
-    # Does not parse the key-value properties. For that, see GoKlogParams.
+    # Does not parse:
+    # - The header and display message.For that, see KlogDisplayMessage.
+    # - The key-value properties. For that, see GoKlogParams.
     #
     # The reason why we split things up is because there are multiple variants of klog-like messages.
     #
     # More info about klog:
     # https://kubernetes.io/docs/concepts/cluster-administration/system-logs/
     # https://github.com/kubernetes/klog/tree/main/textlogger
-    class GoKlogPrefix < Base
+    class GoKlogDisplayMessage < Base
       sig do
         override.
         params(message: StructuredMessage).
@@ -48,17 +50,12 @@ module LogsParser
         message.properties["source_file"] = source_file
         message.properties["source_line"] = source_line.to_i
 
-        accepted, header, display_message, params, err = parse_structured_payload(payload, message.properties)
+        err, header, display_message, params = parse_payload(payload)
         return [true, err] if err
 
-        if accepted
-          message.properties["header"] = header if header
-          message.display_message = display_message if display_message
-          message.unparsed_remainder = params
-        else
-          message.display_message = payload
-          message.unparsed_remainder = ""
-        end
+        message.properties["header"] = header if header
+        message.display_message = display_message if display_message
+        message.unparsed_remainder = params || ""
 
         [true, nil]
       end
@@ -83,26 +80,24 @@ module LogsParser
       end
 
       sig do
-        params(payload: String, properties: T::Hash[String, T.untyped]).
+        params(payload: String).
         returns([
-          # Whether the payload was recognized as structured
-          T::Boolean,
+          T.nilable(ParseError),
           # Header
           T.nilable(String),
           # Display message
           T.nilable(String),
-          # Klog key-value parameters as a string, may be empty
-          String,
-          T.nilable(ParseError),
+          # Klog key-value parameters as a string
+          T.nilable(String),
         ])
       end
-      def parse_structured_payload(payload, properties)
+      def parse_payload(payload)
         pos = 0
 
         # Scan optional header
         if payload[pos] != "\""
           err, header, header_size = scan_literal(payload)
-          return [true, nil, nil, "", ParseError.new("Error scanning header: #{err.message}")] if err
+          return [ParseError.new("Error scanning header: #{err.message}"), nil, nil, nil] if err
           if !header.empty?
             if payload[pos + header_size] == "="
               # This is not actually a header but a key-value pair. Unscan this.
@@ -120,7 +115,7 @@ module LogsParser
 
         # Scan optional display message
         err, display_message, display_message_size = scan_and_parse_json_string_or_literal(T.must(payload[pos .. -1]))
-        return [true, nil, nil, "", ParseError.new("Error parsing display message: #{err.message}")] if err
+        return [ParseError.new("Error parsing display message: #{err.message}"), nil, nil, nil] if err
         if !display_message.empty?
           if payload[pos + display_message_size] == "="
             # This is not actually a main message but a key-value pair. Unscan this.
@@ -133,36 +128,26 @@ module LogsParser
           end
         end
 
-        # Scan key-value parameters.
-        params_data = T.must(payload[pos .. -1])
-        if params_data.empty?
-          return [
-            true,
-            header.empty? ? nil : header,
-            display_message.empty? ? nil : display_message,
-            params_data,
-            nil,
-          ]
-        end
+        params = T.must(payload[pos .. -1])
 
-        err, properties, nconsumed = scan_and_parse_kv_params(params_data, pos)
-        if err || nconsumed == 0
-          [
-            false,
-            nil,
-            nil,
-            "",
-            nil,
-          ]
-        else
-          [
-            true,
-            header.empty? ? nil : header,
-            display_message.empty? ? nil : display_message,
-            params_data,
-            nil,
-          ]
+        [
+          nil,
+          header.empty? ? nil : header,
+          display_message.empty? ? nil : display_message,
+          params.empty? ? nil : params,
+        ]
+
+        # if display_message.empty? && properties.key?("msg")
+        #   display_message = properties.delete("msg")
+        # end
+      end
+
+      if ENV['DEBUG'] == '1'
+        def debug(message)
+          puts "!!! #{message}"
         end
+      else
+        def debug(_message); end
       end
     end
   end

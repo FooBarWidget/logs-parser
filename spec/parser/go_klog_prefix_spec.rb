@@ -71,42 +71,46 @@ RSpec.describe LogsParser::Parser::GoKlogPrefix do
       expect(message.level).to eq('X')
     end
 
-    context 'with header' do
-      specify 'with display message' do
-        message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] controller.main/func "oh no"})
-        accepted, err = subject.parse(message)
-        expect(accepted).to be true
-        expect(err).to be_nil
-        expect(message.properties['header']).to eq('controller.main/func')
-        expect(message.display_message).to eq("oh no")
-      end
-
-      specify 'without display message' do
-        message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] controller.main/func})
-        accepted, err = subject.parse(message)
-        expect(accepted).to be true
-        expect(err).to be_nil
-        expect(message.properties['header']).to eq('controller.main/func')
-        expect(message.display_message).to be_nil
-      end
+    specify 'with unquoted display message' do
+      message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] attempting to acquire lease=aws})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.display_message).to eq("attempting to acquire lease=aws")
     end
 
-    context 'without header' do
-      specify 'with display message' do
-        message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] "oh no"})
-        accepted, err = subject.parse(message)
-        expect(accepted).to be true
-        expect(err).to be_nil
-        expect(message.display_message).to eq("oh no")
-      end
+    specify 'with header, with display message' do
+      message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] controller.main/func "oh no"})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.properties['header']).to eq('controller.main/func')
+      expect(message.display_message).to eq("oh no")
+    end
 
-      specify 'without display message' do
-        message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123]})
-        accepted, err = subject.parse(message)
-        expect(accepted).to be true
-        expect(err).to be_nil
-        expect(message.display_message).to be_nil
-      end
+    specify 'with header, without display message' do
+      message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] controller.main/func})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.properties['header']).to eq('controller.main/func')
+      expect(message.display_message).to be_nil
+    end
+
+    specify 'without header, with display message' do
+      message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123] "oh no"})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.display_message).to eq("oh no")
+    end
+
+    specify 'without header, without display message' do
+      message = new_message(%Q{E0123 12:34:56.789       42 pkg/main4ever.go:123]})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.display_message).to be_nil
     end
 
     specify 'with display message and properties' do

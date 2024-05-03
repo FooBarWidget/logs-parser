@@ -15,7 +15,7 @@ module LogsParser
         # If there's a level property then override the StructuredMessage's
         # native level because the one in the property may be more accurate.
         KEYS.each do |key|
-          if value = message.properties.fetch(key)
+          if value = message.properties.fetch(key, nil)
             message.level = value
             message.properties.delete(key)
             return true

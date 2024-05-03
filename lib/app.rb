@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 require 'sorbet-runtime'
-# require_relative 'parser/go_klog_prefix'
-# require_relative 'parser/go_klog_params'
+require_relative 'parser/go_klog_prefix'
+require_relative 'parser/go_klog_params'
 require_relative 'parser/generic_json'
 require_relative 'post_processor/timestamp'
 require_relative 'post_processor/level'
@@ -17,8 +17,8 @@ module LogsParser
     extend T::Sig
 
     PARSE_PIPELINE = T.let([
-      # Parser::GoKlogPrefix.new,
-      # Parser::GoKlogParams.new,
+      Parser::GoKlogPrefix.new,
+      Parser::GoKlogParams.new,
       Parser::GenericJson.new,
     ], T::Array[Parser::Base])
 
@@ -29,9 +29,9 @@ module LogsParser
     ], T::Array[PostProcessor::Base])
 
     def initialize
-      @output = Output::Pretty.new
+      # @output = Output::Pretty.new
       # @output = Output::JSON.new
-      # @output = Output::CSV.new(ARGV[1] || 'output.csv')
+      @output = Output::CSV.new(ARGV[1] || 'output.csv')
     end
 
     def run

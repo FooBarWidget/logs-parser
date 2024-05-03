@@ -27,12 +27,12 @@ module LogsParser
       def format(message)
         result = colorize([
           format_column(value: message.level, default: "<NOLEVEL>", min_length: StructuredMessage::MAX_LEVEL_KEY_SIZE),
-          format_column(value: message.timestamp&.iso8601 || message.time, default: "<NOTIMESTAMP>", min_length: 25),
+          format_column(value: message.timestamp&.iso8601(3) || message.time, default: "<NOTIMESTAMP>", min_length: 25),
           format_column(value: message.display_message, default: "<No display message>"),
         ].join("  "), color_for_level(message.level))
 
-        max_key_size = message.properties&.keys&.max_by(&:size)&.size || 0
-        message.properties&.each do |key, value|
+        max_key_size = message.properties.keys.max_by(&:size)&.size || 0
+        message.properties.each do |key, value|
           base_indent = " " * (StructuredMessage::MAX_LEVEL_KEY_SIZE + 2 + 25 + 2 + 4)
           result << "\n"
           result << ANSI_COLOR_GRAY

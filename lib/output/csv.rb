@@ -50,14 +50,14 @@ module LogsParser
       def serialize_to_hash(message)
         result = {}
         if message.timestamp
-          result['@timestamp'] = message.timestamp&.iso8601
+          result['@timestamp'] = message.timestamp&.iso8601(3)
         elsif message.time
           result['@time'] = message.time
         end
         result['@level'] = message.level if message.level
         result['@message'] = message.display_message if message.display_message
 
-        if !message.properties&.empty?
+        if !message.properties.empty?
           if @columns == :all
             result.merge!(T.must(message.properties)) if message.properties
           else
