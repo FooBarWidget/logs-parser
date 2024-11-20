@@ -31,29 +31,38 @@ module LogsParser
           format_column(value: message.display_message, default: "<No display message>"),
         ].join("  "), color_for_level(message.level))
 
-        max_key_size = message.properties.keys.max_by(&:size)&.size || 0
-        message.properties.each do |key, value|
-          base_indent = " " * (StructuredMessage::MAX_LEVEL_KEY_SIZE + 2 + 25 + 2 + 4)
-          result << "\n"
-          result << ANSI_COLOR_GRAY
-          result << base_indent
-          result << key.ljust(max_key_size)
-          result << " : "
-          if value.is_a?(Array) || value.is_a?(Hash)
-            result << indent_secondary_lines(
-              ::JSON.neat_generate(value, wrap: 40, padding: 1, after_colon: 1, after_comma: 1),
-              # Prefix every indented line with ANSI color code in
-              # order to support viewing the output in 'less -R':
-              # 'less -R' resets the line color after every newline.
-              ANSI_COLOR_GRAY + " " * (base_indent.size + max_key_size + 3),
-            )
-          else
-            result << value.to_s
-          end
-          result << ANSI_COLOR_RESET
+        if !message.properties.empty?
+          result = result.dup if result.frozen?
+          result << "  "
+          json = ::JSON.neat_generate(message.properties, wrap: false, padding: 1, after_colon: 1, after_comma: 1)
+          result << colorize(json, ANSI_COLOR_GRAY)
         end
 
         result
+
+        # max_key_size = message.properties.keys.max_by(&:size)&.size || 0
+        # message.properties.each do |key, value|
+        #   base_indent = " " * (StructuredMessage::MAX_LEVEL_KEY_SIZE + 2 + 25 + 2 + 4)
+        #   result << "\n"
+        #   result << ANSI_COLOR_GRAY
+        #   result << base_indent
+        #   result << key.ljust(max_key_size)
+        #   result << " : "
+        #   if value.is_a?(Array) || value.is_a?(Hash)
+        #     result << indent_secondary_lines(
+        #       ::JSON.neat_generate(value, wrap: 40, padding: 1, after_colon: 1, after_comma: 1),
+        #       # Prefix every indented line with ANSI color code in
+        #       # order to support viewing the output in 'less -R':
+        #       # 'less -R' resets the line color after every newline.
+        #       ANSI_COLOR_GRAY + " " * (base_indent.size + max_key_size + 3),
+        #     )
+        #   else
+        #     result << value.to_s
+        #   end
+        #   result << ANSI_COLOR_RESET
+        # end
+
+        # result
       end
 
       def format_column(value:, default: nil, min_length: nil)

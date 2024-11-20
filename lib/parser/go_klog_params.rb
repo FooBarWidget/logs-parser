@@ -31,6 +31,7 @@ module LogsParser
         if err
           [true, err]
         elsif nconsumed > 0
+          message.unparsed_remainder = T.must(message.unparsed_remainder[offset + nconsumed .. -1])
           message.properties.merge!(properties)
           [true, nil]
         else

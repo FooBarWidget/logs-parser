@@ -19,6 +19,7 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq('xx')
+      expect(message.unparsed_remainder).to be_empty
     end
 
     specify 'property with string key' do
@@ -27,6 +28,7 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq('xx')
+      expect(message.unparsed_remainder).to be_empty
     end
 
     specify 'property with string value' do
@@ -35,6 +37,7 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq('xx')
+      expect(message.unparsed_remainder).to be_empty
     end
 
     specify 'property with primitive JSON values' do
@@ -43,18 +46,21 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq(true)
+      expect(message.unparsed_remainder).to be_empty
 
       message = new_message(%Q{aa=123})
       accepted, err = subject.parse(message)
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq(123)
+      expect(message.unparsed_remainder).to be_empty
 
       message = new_message(%Q{aa=123.5})
       accepted, err = subject.parse(message)
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq(123.5)
+      expect(message.unparsed_remainder).to be_empty
     end
 
     specify 'property with complex JSON value' do
@@ -63,6 +69,7 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq({ 'a' => 1, 'b' => ['x', 'y', 123.5, nil], 'c' => true, 'd' => {}, 'e' => [] })
+      expect(message.unparsed_remainder).to be_empty
     end
 
     specify 'property with serialized JSON value' do
@@ -71,6 +78,7 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['namespaces']).to eq({ 'exclude' => [], 'include' => []})
+      expect(message.unparsed_remainder).to be_empty
     end
 
     specify 'property with empty literal value' do
@@ -79,6 +87,7 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq('')
+      expect(message.unparsed_remainder).to be_empty
     end
 
     specify 'property with non-empty literal value' do
@@ -87,6 +96,7 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['aa']).to eq('bb')
+      expect(message.unparsed_remainder).to be_empty
     end
 
     specify 'multiple properties' do
@@ -98,14 +108,16 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(message.properties['bb']).to eq('')
       expect(message.properties['cc']).to eq('xx')
       expect(message.properties['dd']).to eq(123)
+      expect(message.unparsed_remainder).to be_empty
     end
 
-    it 'ignores trailing properties' do
+    it 'ignores trailing spaces' do
       message = new_message(%Q{foo="bar"  })
       accepted, err = subject.parse(message)
       expect(accepted).to be true
       expect(err).to be_nil
       expect(message.properties['foo']).to eq('bar')
+      expect(message.unparsed_remainder).to be_empty
     end
   end
 end

@@ -29,9 +29,9 @@ module LogsParser
     ], T::Array[PostProcessor::Base])
 
     def initialize
-      # @output = Output::Pretty.new
+      @output = Output::Pretty.new
       # @output = Output::JSON.new
-      @output = Output::CSV.new(ARGV[1] || 'output.csv')
+      # @output = Output::CSV.new(ARGV[1] || 'output.csv')
     end
 
     def run
@@ -59,7 +59,7 @@ module LogsParser
       message = StructuredMessage.new(unparsed_remainder: raw, raw: raw, properties: {})
 
       PARSE_PIPELINE.each do |parser|
-        accepted, err = parser.parse(message)
+        _accepted, err = parser.parse(message)
         if err
           STDERR.puts "Parse error: #{err.message}"
         end

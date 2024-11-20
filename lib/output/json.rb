@@ -27,7 +27,6 @@ module LogsParser
         result['@level'] = message.level if message.level
         result['@message'] = message.display_message if message.display_message
         result.merge!(T.must(message.properties)) if message.properties
-        result
 
         ::JSON.generate(result)
       end
