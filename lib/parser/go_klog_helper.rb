@@ -113,7 +113,7 @@ module LogsParser
       end
       def scan_literal(data)
         scanner = StringScanner.new(data)
-        consumed = scanner.scan_until(/(:?=|\s|\Z)/)
+        consumed = scanner.scan_until(/(?:=|\s|\Z)/)
         if consumed[-1] =~ /[=\s]/
           [nil, T.must(consumed[0 .. -2]), scanner.pos - 1]
         else
@@ -133,7 +133,7 @@ module LogsParser
       end
       def scan_unquoted_sentence(data)
         scanner = StringScanner.new(data)
-        consumed = scanner.scan(/[a-z0-9_\- ]+/i)
+        consumed = scanner.scan(/[a-z0-9_\-\.\/\: ]+/i)
         if consumed
           [nil, consumed, scanner.pos]
         else

@@ -40,6 +40,16 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(message.unparsed_remainder).to be_empty
     end
 
+    specify 'property with keys that contain dots' do
+      message = new_message(%Q{error="oh no" error.file="/go/manager.go:240"})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.properties['error']).to eq('oh no')
+      expect(message.properties['error.file']).to eq('/go/manager.go:240')
+      expect(message.unparsed_remainder).to be_empty
+    end
+
     specify 'property with string value' do
       message = new_message(%Q{aa="xx"})
       accepted, err = subject.parse(message)
