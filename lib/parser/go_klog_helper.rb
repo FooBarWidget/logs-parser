@@ -54,7 +54,6 @@ module LogsParser
         scanner = StringScanner.new(data)
         return [ParseError.new("Invalid JSON string encountered: missing opening quote"), "", 0] if scanner.skip('"').nil?
 
-        done = T.let(false, T::Boolean)
         consumed = String.new(encoding: Encoding::UTF_8, capacity: data.size)
         consumed << '"'
         while true
@@ -141,7 +140,7 @@ module LogsParser
             return [ParseError.new("Invalid JSON array encountered: no closing bracket"), "", 0]
           end
 
-          err, elem, consumed_size = scan_json(scanner.rest)
+          err, _elem, consumed_size = scan_json(scanner.rest)
           return [err, "", 0] if err
           scanner.pos += consumed_size
           scanner.skip(/\s+/)
@@ -180,7 +179,7 @@ module LogsParser
           return [ParseError.new("Invalid JSON object encountered: no delimiter after key #{key.inspect}"), "", 0] if !scanner.skip(":")
           scanner.skip(/\s+/)
 
-          err, value, value_size = scan_json(scanner.rest)
+          err, _value, value_size = scan_json(scanner.rest)
           return [err, "", 0] if err
           scanner.pos += value_size
 
