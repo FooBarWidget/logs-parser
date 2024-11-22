@@ -47,6 +47,29 @@ module LogsParser
           # Data
           String,
           # Bytes consumed
+          Integer,
+        ])
+      end
+      def scan_and_parse_json_string_or_unquoted_sentence(data)
+        if data[0] == '"'
+          err, consumed, nbytes_consumed = scan_json_string(data)
+          if err
+            [err, "", 0]
+          else
+            [nil, JSON.parse(consumed), nbytes_consumed]
+          end
+        else
+          scan_unquoted_sentence(data)
+        end
+      end
+
+      sig do
+        params(data: String).
+        returns([
+          T.nilable(ParseError),
+          # Data
+          String,
+          # Bytes consumed
           Integer
         ])
       end
@@ -95,6 +118,26 @@ module LogsParser
           [nil, T.must(consumed[0 .. -2]), scanner.pos - 1]
         else
           [nil, T.must(consumed[0 .. -1]), scanner.pos]
+        end
+      end
+
+      sig do
+        params(data: String).
+        returns([
+          T.nilable(ParseError),
+          # Data
+          String,
+          # Bytes consumed
+          Integer
+        ])
+      end
+      def scan_unquoted_sentence(data)
+        scanner = StringScanner.new(data)
+        consumed = scanner.scan(/[a-z0-9_\- ]+/i)
+        if consumed
+          [nil, consumed, scanner.pos]
+        else
+          [nil, "", 0]
         end
       end
 
@@ -211,7 +254,7 @@ module LogsParser
       end
 
       sig do
-        params(data: String, offset: Integer).
+        params(data: String, offset: Integer, support_unquoted_sentences: T::Boolean).
         returns([
           T.nilable(ParseError),
           # Properties
@@ -220,13 +263,16 @@ module LogsParser
           Integer,
         ])
       end
-      def scan_and_parse_kv_params(data, offset = 0)
+      def scan_and_parse_kv_params(data, offset = 0, support_unquoted_sentences:)
         pos = 0
         properties = {}
 
         while pos < data.size
           # Scan key
-          err, key, key_size = scan_and_parse_json_string_or_literal(T.must(data[pos .. -1]))
+          err, key, key_size =
+            support_unquoted_sentences ?
+            scan_and_parse_json_string_or_unquoted_sentence(T.must(data[pos .. -1])) :
+            scan_and_parse_json_string_or_literal(T.must(data[pos .. -1]))
           return [ParseError.new("Failed to parse key at position #{offset + pos}: #{err.message}"), {}, 0] if err
           if key.empty?
             debug "Failed to scan key at position #{offset + pos}"

@@ -27,7 +27,7 @@ module LogsParser
         ])
       end
       def parse(message, offset = 0)
-        err, properties, nconsumed = scan_and_parse_kv_params(message.unparsed_remainder, offset)
+        err, properties, nconsumed = scan_and_parse_kv_params(message.unparsed_remainder, offset, support_unquoted_sentences: true)
         if err
           [true, err]
         elsif nconsumed > 0

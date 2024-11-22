@@ -31,6 +31,15 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(message.unparsed_remainder).to be_empty
     end
 
+    specify 'property with keys that contain spaces' do
+      message = new_message(%Q{time="2024-11-20T15:17:37Z" level=info msg="Maintenance repo complete" BSL name=default})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.properties['BSL name']).to eq('default')
+      expect(message.unparsed_remainder).to be_empty
+    end
+
     specify 'property with string value' do
       message = new_message(%Q{aa="xx"})
       accepted, err = subject.parse(message)

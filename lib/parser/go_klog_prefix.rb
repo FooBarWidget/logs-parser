@@ -123,7 +123,7 @@ module LogsParser
         return [true, nil, nil, "", ParseError.new("Error parsing display message: #{err.message}")] if err
         if !display_message.empty?
           if payload[pos + display_message_size] == "="
-            # This is not actually a main message but a key-value pair. Unscan this.
+            # This is not actually a display message but a key-value pair. Unscan this.
             display_message = ""
           else
             pos += display_message_size
@@ -145,7 +145,7 @@ module LogsParser
           ]
         end
 
-        err, properties, nconsumed = scan_and_parse_kv_params(params_data, pos)
+        err, properties, nconsumed = scan_and_parse_kv_params(params_data, pos, support_unquoted_sentences: false)
         if err || nconsumed == 0
           [
             false,
