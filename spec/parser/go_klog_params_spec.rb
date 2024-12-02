@@ -100,6 +100,31 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(message.unparsed_remainder).to be_empty
     end
 
+    it 'property with value whose beginning looks like JSON' do
+      message = new_message(%Q{item=1f22647-f3b5-4735-9996-765101b98e2d logSource=\"internal/delete/delete_item_action_handler.go:116\"})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.properties['item']).to eq('1f22647-f3b5-4735-9996-765101b98e2d')
+      expect(message.properties['logSource']).to eq('internal/delete/delete_item_action_handler.go:116')
+      expect(message.unparsed_remainder).to be_empty
+
+      message = new_message(%Q{item=1f22647-f3b5-4735-9996-765101b98e2d})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.properties['item']).to eq('1f22647-f3b5-4735-9996-765101b98e2d')
+      expect(message.unparsed_remainder).to be_empty
+    end
+
+    it 'does not parse zero-leading numbers as JSON' do
+      message = new_message(%Q{name=021891576552})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.properties['name']).to eq('021891576552')
+    end
+
     specify 'property with empty literal value' do
       message = new_message(%Q{aa=})
       accepted, err = subject.parse(message)

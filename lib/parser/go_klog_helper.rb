@@ -244,7 +244,7 @@ module LogsParser
       end
       def scan_json_primitive(data)
         scanner = StringScanner.new(data)
-        if (consumed = scanner.scan(/([0-9\.]+|true|false|null)/))
+        if (consumed = scanner.scan(/([1-9][0-9\.]*|true|false|null)/))
           [nil, consumed, scanner.pos]
         elsif scanner.match?('"')
           scan_json_string(data)
@@ -294,7 +294,7 @@ module LogsParser
             # Value may be a serialized JSON document. Try parsing it, but it's
             # fine if that fails.
             err, value, value_size = scan_json(T.must(data[pos .. -1]))
-            if err
+            if err || ![nil, ' '].include?(data[pos + value_size])
               err, value, value_size = scan_literal(T.must(data[pos .. -1]))
               return [ParseError.new("Failed to scan value at position #{offset + pos}: #{err.message}"), {}, 0] if err
             else
