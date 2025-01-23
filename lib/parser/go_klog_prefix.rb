@@ -101,14 +101,14 @@ module LogsParser
 
         # Scan optional header
         if payload[pos] != "\""
-          err, header, header_size = scan_literal(payload)
+          err, header, header_charsize = scan_literal(payload)
           return [true, nil, nil, "", ParseError.new("Error scanning header: #{err.message}")] if err
           if !header.empty?
-            if payload[pos + header_size] == "="
+            if payload[pos + header_charsize] == "="
               # This is not actually a header but a key-value pair. Unscan this.
               header = ""
             else
-              pos += header_size
+              pos += header_charsize
 
               # Skip spaces
               pos += 1 while payload[pos] == ' '
@@ -119,14 +119,14 @@ module LogsParser
         end
 
         # Scan optional display message
-        err, display_message, display_message_size = scan_and_parse_json_string_or_literal(T.must(payload[pos .. -1]))
+        err, display_message, display_message_charsize = scan_and_parse_json_string_or_literal(T.must(payload[pos .. -1]))
         return [true, nil, nil, "", ParseError.new("Error parsing display message: #{err.message}")] if err
         if !display_message.empty?
-          if payload[pos + display_message_size] == "="
+          if payload[pos + display_message_charsize] == "="
             # This is not actually a display message but a key-value pair. Unscan this.
             display_message = ""
           else
-            pos += display_message_size
+            pos += display_message_charsize
 
             # Skip spaces
             pos += 1 while payload[pos] == ' '
@@ -145,8 +145,8 @@ module LogsParser
           ]
         end
 
-        err, properties, nconsumed = scan_and_parse_kv_params(params_data, pos, support_unquoted_sentences: false)
-        if err || nconsumed == 0
+        err, properties, ncharsconsumed = scan_and_parse_kv_params(params_data, pos, support_unquoted_sentences: false)
+        if err || ncharsconsumed == 0
           [
             false,
             nil,

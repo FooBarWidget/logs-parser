@@ -27,11 +27,11 @@ module LogsParser
         ])
       end
       def parse(message, offset = 0)
-        err, properties, nconsumed = scan_and_parse_kv_params(message.unparsed_remainder, offset, support_unquoted_sentences: true)
+        err, properties, ncharsconsumed = scan_and_parse_kv_params(message.unparsed_remainder, offset, support_unquoted_sentences: true)
         if err
           [true, err]
-        elsif nconsumed > 0
-          message.unparsed_remainder = T.must(message.unparsed_remainder[offset + nconsumed .. -1])
+        elsif ncharsconsumed > 0
+          message.unparsed_remainder = T.must(message.unparsed_remainder[offset + ncharsconsumed .. -1])
           message.properties.merge!(properties)
           [true, nil]
         else

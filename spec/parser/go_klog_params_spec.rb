@@ -163,5 +163,14 @@ RSpec.describe LogsParser::Parser::GoKlogParams do
       expect(message.properties['foo']).to eq('bar')
       expect(message.unparsed_remainder).to be_empty
     end
+
+    it 'supports unicode values' do
+      message = new_message(%Q{db_storage=2.018µs})
+      accepted, err = subject.parse(message)
+      expect(accepted).to be true
+      expect(err).to be_nil
+      expect(message.properties['db_storage']).to eq('2.018µs')
+      expect(message.unparsed_remainder).to be_empty
+    end
   end
 end
